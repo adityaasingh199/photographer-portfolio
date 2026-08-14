@@ -1,0 +1,586 @@
+/* ── Google Fonts ── */
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600&family=Italianno&family=Mrs+Saint+Delafield&family=Petit+Formal+Script&display=swap');
+
+@import "tailwindcss";
+
+/* ══════════════════════════════════════════════════════════════════
+   DESIGN TOKENS — single source of truth for the whole site.
+   config/theme.js mirrors these values for JS consumers; if you change
+   a colour here, change it there too.
+
+   Accent policy: the brass accent is reserved for the signature
+   wordmark, active states, primary CTAs and one or two hairline
+   details. Everything that used to be "tinted so it isn't quite
+   foreground" now uses the warm neutral ramp below.
+   ══════════════════════════════════════════════════════════════════ */
+@theme {
+  /* ── Base surfaces (deep, warm near-black — lets photographs carry the colour) ── */
+  --color-base: #0D0B0A;
+  --color-surface: #14110F;
+  --color-surface-elevated: #1C1815;
+
+  /* ── Foreground ── */
+  --color-off-white: #F4EFE7;
+  --color-off-white-muted: #C4BBAE;
+
+  /* ── Warm neutral ramp: four steps from base → foreground ──
+     warm-1  hairlines, dividers, the faintest separation
+     warm-2  borders, input outlines, section numerals
+     warm-3  tertiary text, meta, icons at rest, placeholders
+     warm-4  small-caps labels, secondary text                    */
+  --color-warm-1: #221E1A;
+  --color-warm-2: #38312A;
+  --color-warm-3: #6A6055;
+  --color-warm-4: #A79C8E;
+
+  /* ── Accent: antique brass. Muted and deeper than the old marigold
+     (h37 s38 l48 vs h32 s70 l52). Use sparingly. ── */
+  --color-brass: #A8854C;
+  --color-brass-bright: #C9A468;
+  --color-brass-deep: #6E5732;
+
+  /* ── Support ── */
+  --color-terracotta: #8C4A2F;
+  --color-terracotta-light: #C1795C;
+  --color-placeholder: #6A6055;
+
+  /* ── Type ── */
+  --font-display: 'Cormorant Garamond', serif;
+  --font-body: 'Inter', sans-serif;
+  --font-signature-delafield: 'Mrs Saint Delafield', cursive;
+  --font-signature-italianno: 'Italianno', cursive;
+  --font-signature-petit: 'Petit Formal Script', cursive;
+
+  --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Header geometry & layers ──
+   --header-h is FIXED. The header must never animate its own height:
+   a transitioning padding sweeps the bottom edge through fractional
+   CSS pixels (measured: 80 → 76.188 → 72.859 → 70.438 → 65), which at
+   DPR 2 lands the edge on a half device pixel and antialiases it into
+   a visible light hairline. See .header-plate below. */
+:root {
+  --header-h: 76px;
+
+  /* Legibility scrim: always on, fades to zero — no edge to alias. */
+  --header-scrim: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.62) 0%,
+    rgba(0, 0, 0, 0.38) 42%,
+    rgba(0, 0, 0, 0.14) 74%,
+    rgba(0, 0, 0, 0) 100%
+  );
+
+  /* Scrolled state: translucent dark plate that carries the blur. */
+  --header-plate: linear-gradient(
+    to bottom,
+    rgba(13, 11, 10, 0.88) 0%,
+    rgba(13, 11, 10, 0.72) 100%
+  );
+
+  /* The fix. Feathering the plate's alpha to zero means there is no
+     row where "blurred + tinted" meets "untouched content", so neither
+     the backdrop-filter clip edge nor a border can produce a seam. */
+  --header-plate-mask: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 64%,
+    rgba(0, 0, 0, 0.5) 84%,
+    transparent 100%
+  );
+}
+
+@layer base {
+  /* ── Base Styles ── */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--color-base);
+    color: var(--color-off-white);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background-color: var(--color-brass);
+    color: var(--color-base);
+  }
+
+  /* ── Typography ── */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    line-height: 1.1;
+    color: var(--color-off-white);
+  }
+
+  h1 {
+    font-size: clamp(2.5rem, 6vw, 5.5rem);
+    letter-spacing: -0.02em;
+  }
+
+  h2 {
+    font-size: clamp(1.8rem, 4vw, 3.5rem);
+    letter-spacing: -0.01em;
+  }
+
+  h3 {
+    font-size: clamp(1.3rem, 2.5vw, 2rem);
+  }
+
+  p {
+    color: var(--color-off-white-muted);
+    max-width: 65ch;
+  }
+
+  /* Links inherit by default — the accent is applied deliberately, not
+     globally. Previously `a { color: marigold }` tinted every link on
+     the site, which is most of why the palette read as cheap. */
+  a {
+    color: inherit;
+    text-decoration: none;
+    transition: color 300ms var(--ease-smooth), opacity 300ms var(--ease-smooth);
+  }
+
+  /* Prose links (journal body copy) still need to be identifiable. */
+  .prose-custom a {
+    color: var(--color-brass);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+    text-decoration-color: var(--color-brass-deep);
+  }
+
+  .prose-custom a:hover {
+    color: var(--color-brass-bright);
+    text-decoration-color: var(--color-brass);
+  }
+
+  /* ── Focus rings (a11y) ── */
+  :focus-visible {
+    outline: 2px solid var(--color-brass);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  /* ── Form Inputs & Placeholders ── */
+  ::placeholder {
+    color: var(--color-placeholder);
+    opacity: 1;
+  }
+
+  input,
+  textarea,
+  select {
+    color: var(--color-off-white);
+    font-family: var(--font-body);
+  }
+
+  /* Chrome / Safari Autofill Dark Theme Override */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active,
+  textarea:-webkit-autofill,
+  textarea:-webkit-autofill:hover,
+  textarea:-webkit-autofill:focus,
+  select:-webkit-autofill {
+    -webkit-text-fill-color: var(--color-off-white) !important;
+    -webkit-box-shadow: 0 0 0 1000px var(--color-surface) inset !important;
+    box-shadow: 0 0 0 1000px var(--color-surface) inset !important;
+    caret-color: var(--color-off-white) !important;
+    transition: background-color 9999s ease-in-out 0s;
+  }
+
+  /* Date input calendar picker indicator */
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    opacity: 0.6;
+    cursor: pointer;
+    transition: opacity 300ms var(--ease-smooth);
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
+}
+
+@layer components {
+  /* ══════════════════════════════════════════════════════════════════
+     HEADER
+     ══════════════════════════════════════════════════════════════════ */
+
+  .site-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: var(--header-h);
+    z-index: 50;
+    /* Own compositing layer, pinned to whole pixels. Nothing about this
+       element's geometry changes on scroll — only layer opacity. */
+    transform: translateZ(0);
+  }
+
+  .header-scrim,
+  .header-plate {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    /* Deliberately taller than the header so the fade lands in empty
+       space below the nav row rather than at the content boundary. */
+    height: calc(var(--header-h) + 32px);
+    pointer-events: none;
+  }
+
+  .header-scrim {
+    background: var(--header-scrim);
+  }
+
+  .header-plate {
+    background: var(--header-plate);
+    backdrop-filter: blur(14px) saturate(115%);
+    -webkit-backdrop-filter: blur(14px) saturate(115%);
+    -webkit-mask-image: var(--header-plate-mask);
+    mask-image: var(--header-plate-mask);
+    opacity: 0;
+    transition: opacity 450ms var(--ease-smooth);
+  }
+
+  .header-plate[data-scrolled='true'] {
+    opacity: 1;
+  }
+
+  /* ── Nav links: warm off-white at 75%, full on hover, brass underline
+     wiping in from the left. ── */
+  .nav-link {
+    position: relative;
+    display: inline-block;
+    color: var(--color-off-white);
+    opacity: 0.75;
+    transition: opacity 320ms var(--ease-smooth);
+  }
+
+  .nav-link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -6px;
+    height: 1px;
+    background-color: var(--color-brass);
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 460ms var(--ease-smooth);
+  }
+
+  .nav-link:hover,
+  .nav-link:focus-visible,
+  .nav-link[aria-current='page'] {
+    opacity: 1;
+  }
+
+  .nav-link:hover::after,
+  .nav-link:focus-visible::after,
+  .nav-link[aria-current='page']::after {
+    transform: scaleX(1);
+  }
+
+  /* ── Signature Wordmark Classes ── */
+  .font-signature-delafield {
+    font-family: var(--font-signature-delafield);
+  }
+
+  .font-signature-italianno {
+    font-family: var(--font-signature-italianno);
+  }
+
+  .font-signature-petit {
+    font-family: var(--font-signature-petit);
+  }
+
+  /* ── Button System ── */
+  .btn-primary,
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    padding: 0.875rem 1.75rem;
+    min-height: 3rem;
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    border-radius: 2px;
+    cursor: pointer;
+    text-decoration: none;
+    line-height: 1;
+    transition: all 400ms var(--ease-smooth);
+    box-sizing: border-box;
+  }
+
+  .btn-primary {
+    background-color: var(--color-brass);
+    color: var(--color-base) !important;
+    border: 1px solid var(--color-brass);
+  }
+
+  .btn-primary svg {
+    color: var(--color-base) !important;
+  }
+
+  .btn-primary:hover {
+    background-color: var(--color-brass-bright);
+    border-color: var(--color-brass-bright);
+    color: var(--color-base) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px -14px rgba(168, 133, 76, 0.6);
+  }
+
+  .btn-primary:active {
+    transform: translateY(0);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .btn-secondary {
+    background-color: transparent;
+    color: var(--color-off-white) !important;
+    border: 1px solid var(--color-warm-2);
+  }
+
+  .btn-secondary svg {
+    color: currentColor;
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--color-warm-3);
+    color: var(--color-off-white) !important;
+    background-color: rgba(167, 156, 142, 0.06);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px -16px rgba(0, 0, 0, 0.75);
+  }
+
+  .btn-secondary:active {
+    transform: translateY(0);
+  }
+
+  .btn-secondary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     HOVER / INTERACTION PRIMITIVES
+     Slow, single-property, no bounce. Everything eases on
+     --ease-smooth so the whole site moves with one hand.
+     Each is authored to work either on its own or driven by a
+     parent `.group`, so cards can move as a single unit.
+     ══════════════════════════════════════════════════════════════ */
+
+  /* Inline link — brass underline wipes in from the left, matching
+     the nav. The site's only other sanctioned accent detail. */
+  .link-wipe {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--color-off-white);
+    opacity: 0.75;
+    transition: opacity 320ms var(--ease-smooth);
+  }
+
+  .link-wipe::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -5px;
+    height: 1px;
+    background-color: var(--color-brass);
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 500ms var(--ease-smooth);
+  }
+
+  .link-wipe:hover,
+  .link-wipe:focus-visible,
+  .group:hover .link-wipe {
+    opacity: 1;
+  }
+
+  .link-wipe:hover::after,
+  .link-wipe:focus-visible::after,
+  .group:hover .link-wipe::after {
+    transform: scaleX(1);
+  }
+
+  /* The small arrow that trails "Read more" / "View all" glides out. */
+  .link-wipe svg {
+    transition: transform 500ms var(--ease-smooth);
+  }
+
+  .link-wipe:hover svg,
+  .group:hover .link-wipe svg {
+    transform: translateX(5px);
+  }
+
+  /* Photograph frame — very slow zoom, a brass rule wiping across the
+     bottom edge, and a gentle lift of the surrounding card. */
+  .media-frame {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .media-frame img {
+    transition: transform 1200ms var(--ease-smooth), filter 900ms var(--ease-smooth);
+    will-change: transform;
+  }
+
+  .media-frame:hover img,
+  .group:hover .media-frame img {
+    transform: scale(1.045);
+  }
+
+  .media-frame::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background-color: var(--color-brass);
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 650ms var(--ease-smooth);
+    z-index: 2;
+  }
+
+  .media-frame:hover::after,
+  .group:hover .media-frame::after {
+    transform: scaleX(1);
+  }
+
+  /* Card lift — pairs with .media-frame. */
+  .card-lift {
+    transition: transform 650ms var(--ease-smooth);
+  }
+
+  .card-lift:hover,
+  .group:hover .card-lift {
+    transform: translateY(-6px);
+  }
+
+  /* ── Section numeral — neutral, not accent ── */
+  .section-numeral {
+    font-family: var(--font-display);
+    font-size: clamp(4rem, 8vw, 8rem);
+    font-weight: 300;
+    color: var(--color-warm-2);
+    line-height: 1;
+    letter-spacing: -0.04em;
+    user-select: none;
+  }
+
+  /* ── Small-caps label — neutral, not accent ── */
+  .label-sm {
+    font-family: var(--font-body);
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--color-warm-4);
+  }
+
+  /* ── Hairline divider ── */
+  .hairline {
+    border: none;
+    border-top: 1px solid var(--color-warm-1);
+  }
+
+  /* One of the two sanctioned accent hairlines: a short brass rule used
+     to mark the start of a section. */
+  .hairline-accent {
+    border: none;
+    border-top: 1px solid var(--color-brass-deep);
+  }
+
+  /* ── Film grain overlay ── */
+  .grain {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-base);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-warm-2);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-warm-3);
+  }
+
+  /* ── Image protection ── */
+  .no-drag {
+    -webkit-user-drag: none;
+    user-select: none;
+    pointer-events: none;
+  }
+
+  .no-context img {
+    pointer-events: none;
+  }
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ── Lightbox overrides ── */
+.yarl__container {
+  background-color: rgba(13, 11, 10, 0.96) !important;
+}
