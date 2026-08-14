@@ -31,10 +31,11 @@ export const router = createBrowserRouter(
       children: [
         { path: '/', element: <SuspenseWrap><Home /></SuspenseWrap> },
         { path: '/gallery', element: <SuspenseWrap><Gallery /></SuspenseWrap> },
+        { path: '/gallery/:slug', element: <SuspenseWrap><ClientGalleryPage /></SuspenseWrap> },
+        { path: '/client-gallery/:slug', element: <SuspenseWrap><ClientGalleryPage /></SuspenseWrap> },
         { path: '/about', element: <SuspenseWrap><About /></SuspenseWrap> },
         { path: '/journal', element: <SuspenseWrap><Journal /></SuspenseWrap> },
         { path: '/journal/:slug', element: <SuspenseWrap><JournalPost /></SuspenseWrap> },
-        { path: '/client-gallery/:slug', element: <SuspenseWrap><ClientGalleryPage /></SuspenseWrap> },
         { path: '/contact', element: <SuspenseWrap><Contact /></SuspenseWrap> },
         { path: '*', element: <SuspenseWrap><NotFound /></SuspenseWrap> },
       ],
