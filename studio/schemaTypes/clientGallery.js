@@ -15,14 +15,15 @@ export default defineType({
     }),
     defineField({
       name: 'slug',
-      title: 'Slug',
+      title: 'Gallery ka link (URL)',
       type: 'slug',
+      description:
+        'Client ka naam likhne ke baad "Generate" button dabayein — website ka link apne aap ban jayega. Isko change mat karein agar link kahin bhej chuke hain.',
       options: {
         source: 'clientName',
         maxLength: 96,
       },
-      hidden: true,
-      validation: (Rule) => Rule.required(),
+      validation: (Rule) => Rule.required().error('Link banane ke liye "Generate" button dabayein'),
     }),
     defineField({
       name: 'shootDate',
