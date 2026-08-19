@@ -2,7 +2,7 @@ import { createImageUrlBuilder } from '@sanity/image-url'
 import { env } from '../config/env.js'
 
 const builder = createImageUrlBuilder({
-  projectId: env.sanityProjectId || 'y51uodc2',
+  projectId: env.sanityProjectId || 'i4ok6tdy',
   dataset: env.sanityDataset || 'production',
 })
 

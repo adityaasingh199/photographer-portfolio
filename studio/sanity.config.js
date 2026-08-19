@@ -8,7 +8,7 @@ export default defineConfig({
   name: 'default',
   title: 'Keshav Photography',
 
-  projectId: 'y51uodc2',
+  projectId: 'i4ok6tdy',
   dataset: 'production',
 
   plugins: [
