@@ -1,3 +1,7 @@
+# Internal folder 
+studio/
+
+
 # Dependencies
 node_modules/
 .pnp
