@@ -1,4 +1,4 @@
-# Photographer Portfolio.
+# Photographer Portfolio
 
 A modern portfolio website for a photographer built with React, Vite, and a modular architecture for galleries, journal posts, testimonials, and contact flows.
 
