@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { useParams, Navigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { motion } from 'framer-motion'
-import { Lock, AlertCircle } from 'lucide-react'
+import { Lock, AlertCircle, Download } from 'lucide-react'
 import Lightbox from 'yet-another-react-lightbox'
 import Zoom from 'yet-another-react-lightbox/plugins/zoom'
 import Counter from 'yet-another-react-lightbox/plugins/counter'
 import 'yet-another-react-lightbox/styles.css'
 import 'yet-another-react-lightbox/plugins/counter.css'
+import JSZip from 'jszip'
 
 import PageTransition from '../components/layout/PageTransition'
 import Skeleton from '../components/ui/Skeleton'
@@ -16,13 +17,68 @@ import { useLightbox } from '../../controllers/hooks/useLightbox'
 import { thumbUrl, fullUrl } from '../../utils/imageUrl'
 import { formatDate } from '../../utils/formatDate'
 
+const getPhotoDownloadName = (photo, index, galleryName) => {
+  const source = String(photo || '')
+  const normalizedName =
+    String(galleryName || 'gallery')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'gallery'
+
+  const originalExt = source.split('?')[0].split('.').pop()
+  const ext = originalExt && /^[a-z0-9]+$/i.test(originalExt) ? originalExt : 'jpg'
+
+  return `${normalizedName}-${index + 1}.${ext}`
+}
+
+const downloadBlobAsFile = (blob, fileName) => {
+  const objectUrl = URL.createObjectURL(blob)
+
+  const link = document.createElement('a')
+  link.href = objectUrl
+  link.download = fileName
+  link.rel = 'noopener noreferrer'
+  link.style.display = 'none'
+
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
+}
+
+const downloadSingleImage = async (src, fileName) => {
+  try {
+    const response = await fetch(src, {
+      method: 'GET',
+      credentials: 'same-origin',
+      mode: 'cors',
+    })
+
+    if (!response.ok) throw new Error(`Image fetch failed: ${response.status}`)
+
+    const blob = await response.blob()
+    downloadBlobAsFile(blob, fileName)
+  } catch (error) {
+    const link = document.createElement('a')
+    link.href = src
+    link.download = fileName
+    link.target = '_blank'
+    link.rel = 'noopener noreferrer'
+    link.style.display = 'none'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+  }
+}
+
 export default function ClientGalleryPage() {
   const { slug } = useParams()
   const { data: gallery, isLoading, error } = useClientGallery(slug)
   const [passcodeInput, setPasscodeInput] = useState('')
   const [authError, setAuthError] = useState(false)
   const [authenticated, setAuthenticated] = useState(() => {
-    // Check sessionStorage
     return sessionStorage.getItem(`cg-auth-${slug}`) === 'true'
   })
 
@@ -38,6 +94,35 @@ export default function ClientGalleryPage() {
     } else {
       setAuthError(true)
     }
+  }
+
+  const handleBulkDownload = async () => {
+    if (!photos.length || !gallery) return
+
+    const zip = new JSZip()
+
+    for (const [index, photo] of photos.entries()) {
+      const fileName = getPhotoDownloadName(photo, index, gallery.clientName)
+      const imageUrl = fullUrl(photo)
+
+      try {
+        const response = await fetch(imageUrl, {
+          method: 'GET',
+          credentials: 'same-origin',
+          mode: 'cors',
+        })
+
+        if (!response.ok) continue
+
+        const blob = await response.blob()
+        zip.file(fileName, blob)
+      } catch (error) {
+        // ignore failed ones
+      }
+    }
+
+    const zipBlob = await zip.generateAsync({ type: 'blob' })
+    downloadBlobAsFile(zipBlob, `${(gallery.clientName || 'gallery').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.zip`)
   }
 
   if (isLoading) {
@@ -62,7 +147,6 @@ export default function ClientGalleryPage() {
     )
   }
 
-  // ── Passcode Gate ──
   if (!authenticated) {
     return (
       <PageTransition>
@@ -102,10 +186,7 @@ export default function ClientGalleryPage() {
                   Incorrect password. Please try again.
                 </p>
               )}
-              <button
-                type="submit"
-                className="btn-primary w-full"
-              >
+              <button type="submit" className="btn-primary w-full">
                 View Gallery
               </button>
             </form>
@@ -115,7 +196,6 @@ export default function ClientGalleryPage() {
     )
   }
 
-  // ── Authenticated Gallery View ──
   const lightboxSlides = photos.map((p) => ({
     src: fullUrl(p),
     alt: gallery.clientName,
@@ -136,7 +216,17 @@ export default function ClientGalleryPage() {
           )}
         </div>
 
-        {/* Photo grid */}
+        <div className="flex justify-end mb-6">
+          <button
+            type="button"
+            onClick={handleBulkDownload}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-sm border border-brass/60 bg-surface text-off-white hover:border-brass hover:bg-surface/80 transition-colors"
+          >
+            <Download size={16} />
+            Download all
+          </button>
+        </div>
+
         <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
           {photos.map((photo, i) => (
             <motion.div
@@ -144,7 +234,7 @@ export default function ClientGalleryPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05, duration: 0.5 }}
-              className="break-inside-avoid cursor-pointer group"
+              className="relative break-inside-avoid cursor-pointer group"
               onClick={() => lightbox.open(i)}
             >
               <div className="overflow-hidden rounded-sm">
@@ -158,6 +248,21 @@ export default function ClientGalleryPage() {
                   draggable={false}
                 />
               </div>
+
+              <button
+                type="button"
+                aria-label={`Download ${gallery.clientName} image ${i + 1}`}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  downloadSingleImage(
+                    fullUrl(photo),
+                    getPhotoDownloadName(photo, i, gallery.clientName)
+                  )
+                }}
+                className="absolute bottom-3 right-3 flex items-center justify-center w-9 h-9 rounded-full border border-white/10 bg-black/55 text-white backdrop-blur-sm opacity-0 transition-all duration-200 group-hover:opacity-100 hover:bg-black/75"
+              >
+                <Download size={14} />
+              </button>
             </motion.div>
           ))}
         </div>
